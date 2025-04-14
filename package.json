@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "email": "email dev",
-    "postinstall": "prisma generate",
-    "postinstall": "npm install --legacy-peer-deps"
+    "postinstall": "prisma generate && npm install --legacy-peer-deps --no-postinstall"
   },
   "dependencies": {
     "@arcjet/next": "^1.0.0-alpha.34",
