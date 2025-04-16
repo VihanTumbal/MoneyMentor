@@ -11,17 +11,19 @@ const isProtectedRoute = createRouteMatcher([
 // Create Arcjet middleware
 const aj = arcjet({
   key: process.env.ARCJET_KEY,
-  // characteristics: ["userId"], // Track based on Clerk userId
+  characteristics: ["userId"], // Add this
   rules: [
     // Shield protection for content and security
     shield({
       mode: "LIVE",
     }),
     detectBot({
-      mode: "LIVE", // will block requests. Use "DRY_RUN" to log only
+      mode: "DRY_RUN", // Change to DRY_RUN instead of LIVE
       allow: [
         "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
         "GO_HTTP", // For Inngest
+        "CATEGORY:BROWSER", // Add this
+        "CATEGORY:MONITORING", // Add this
         // See the full list at https://arcjet.com/bot-list
       ],
     }),
@@ -30,14 +32,25 @@ const aj = arcjet({
 
 // Create base Clerk middleware
 const clerk = clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  try {
+    const { userId } = await auth();
 
-  if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+    if (!userId && isProtectedRoute(req)) {
+      const { redirectToSignIn } = await auth();
+      return redirectToSignIn();
+    }
+
+    // Add logging for debugging
+    if (process.env.NODE_ENV === "development") {
+      console.log(`Request to ${req.url} - User: ${userId || "anonymous"}`);
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Middleware error:", error);
+    // Return a more user-friendly response instead of 403
+    return NextResponse.next();
   }
-
-  return NextResponse.next();
 });
 
 // Chain middlewares - ArcJet runs first, then Clerk
